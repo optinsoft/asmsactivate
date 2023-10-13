@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='asmsactivate',
-    version='1.2',
+    version='1.3',
     description='Async API wrapper for sms-activate',
     install_requires=["aiohttp","certifi"],
     author='optinsoft',

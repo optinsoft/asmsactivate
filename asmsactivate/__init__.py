@@ -1,2 +1,2 @@
-from .asyncsmsactivate import AsyncSmsActivate, AsyncSmsActivateException, NoSMSException
+from .asyncsmsactivate import AsyncSmsActivate, AsyncSmsActivateException, NoSMSException, EarlyCancelException
 from .testsmsactivate import testAsyncSmsActivate
