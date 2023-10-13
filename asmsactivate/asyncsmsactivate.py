@@ -10,6 +10,9 @@ class AsyncSmsActivateException(Exception):
 class NoSMSException(AsyncSmsActivateException):
     pass
 
+class EarlyCancelException(AsyncSmsActivateException):
+    pass
+
 class AsyncSmsActivate:
     def __init__(self, apiKey: str, apiUrl: str = 'https://api.sms-activate.org/stubs/handler_api.php'):
         self.apiKey = apiKey
@@ -49,11 +52,15 @@ class AsyncSmsActivate:
                     if not code.startswith(successCode):
                         if len(noSmsCode) > 0 and code == noSmsCode:
                             raise NoSMSException("No SMS")
+                        if "EARLY_CANCEL_DENIED" == code:
+                            raise EarlyCancelException("Yearly cancel denied")
                         raise AsyncSmsActivateException(f'Error "{code}": {":".join(respList)}')
                 else:
                     if code != successCode:
                         if len(noSmsCode) > 0 and code == noSmsCode:
                             raise NoSMSException("No SMS")
+                        if "EARLY_CANCEL_DENIED" == code:
+                            raise EarlyCancelException("Yearly cancel denied")
                         raise AsyncSmsActivateException(f'Error "{code}": {":".join(respList)}')
             else:
                 raise AsyncSmsActivateException(f"Empty response")
