@@ -1,7 +1,11 @@
 from distutils.core import setup
+import re
+
+s = open('asmsactivate/version.py').read()
+v = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", s, re.M).group(1)
 
 setup(name='asmsactivate',
-    version='1.3',
+    version=v,
     description='Async API wrapper for sms-activate',
     install_requires=["aiohttp","certifi"],
     author='optinsoft',
