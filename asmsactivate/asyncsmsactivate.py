@@ -82,7 +82,7 @@ class AsyncSmsActivate:
         ssl_context = ssl.create_default_context(cafile=certifi.where())
         conn = aiohttp.TCPConnector(ssl=ssl_context)
         async with aiohttp.ClientSession(connector=conn, raise_for_status=False, timeout=aiohttp.ClientTimeout(total=self.http_timeout)) as session:
-            async with session.get(url) as resp:
+            async with session.get(url, timeout=self.http_timeout) as resp:
                 if resp.status != 200:
                     respText = await resp.text()
                     self.logRequest(query, {'status':resp.status,'text':respText})
@@ -100,7 +100,7 @@ class AsyncSmsActivate:
         ssl_context = ssl.create_default_context(cafile=certifi.where())
         conn = aiohttp.TCPConnector(ssl=ssl_context)
         async with aiohttp.ClientSession(connector=conn, raise_for_status=False, timeout=aiohttp.ClientTimeout(total=self.http_timeout)) as session:
-            async with session.get(url) as resp:
+            async with session.get(url, timeout=self.http_timeout) as resp:
                 if resp.status != 200:
                     respText = await resp.text()
                     self.logRequest(query, {'status':resp.status,'text':respText})
