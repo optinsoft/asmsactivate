@@ -158,5 +158,5 @@ class AsyncSmsActivate:
     def getCountryCode(self, iso_country: str):
         return self.iso_country_dict[iso_country]
     
-    def getIsoCountry(self, country_code: str):
-        return self.country_iso_dict[country_code]
+    def getIsoCountry(self, country_code: str, default: str):
+        return self.country_iso_dict.get(country_code, default)
