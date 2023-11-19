@@ -15,6 +15,9 @@ class NoSMSException(AsyncSmsActivateException):
 class EarlyCancelException(AsyncSmsActivateException):
     pass
 
+class WrongMaxPriceException(AsyncSmsActivateException):
+    pass
+
 class AsyncSmsActivate:
     def __init__(self, apiKey: str, apiUrl: str = 'https://api.sms-activate.org/stubs/handler_api.php', logger: logging.Logger = None, http_timeout: int = 15):
         self.logger = logger
@@ -47,6 +50,9 @@ class AsyncSmsActivate:
             "UG":"75",  "US":"187", "US":"12",  "UY":"156", "UZ":"40",  "VC":"166", "VE":"70",  "VN":"10", 
             "YE":"30",  "ZA":"31",  "ZM":"147", "ZW":"96"
         }
+        self.country_iso_dict = {}
+        for item in self.iso_country_dict.items(): 
+            self.country_iso_dict[item[1]] = item[0]
 
     def checkResponse(self, respList: list, successCode: str, noSmsCode: str):
         if len(successCode) > 0:
@@ -58,6 +64,8 @@ class AsyncSmsActivate:
                             raise NoSMSException("No SMS")
                         if "EARLY_CANCEL_DENIED" == code:
                             raise EarlyCancelException("Yearly cancel denied")
+                        if "WRONG_MAX_PRICE" == code:
+                            raise WrongMaxPriceException(f'Wrong max. price {":".join(respList[1:])}')
                         raise AsyncSmsActivateException(f'Error "{code}": {":".join(respList)}')
                 else:
                     if code != successCode:
@@ -65,6 +73,8 @@ class AsyncSmsActivate:
                             raise NoSMSException("No SMS")
                         if "EARLY_CANCEL_DENIED" == code:
                             raise EarlyCancelException("Yearly cancel denied")
+                        if "WRONG_MAX_PRICE" == code:
+                            raise WrongMaxPriceException(f'Wrong max. price {":".join(respList[1:])}')
                         raise AsyncSmsActivateException(f'Error "{code}": {":".join(respList)}')
             else:
                 raise AsyncSmsActivateException(f"Empty response")
@@ -148,3 +158,5 @@ class AsyncSmsActivate:
     def getCountryCode(self, iso_country: str):
         return self.iso_country_dict[iso_country]
     
+    def getIsoCountry(self, country_code: str):
+        return self.country_iso_dict[country_code]
