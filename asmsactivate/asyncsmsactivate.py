@@ -82,9 +82,11 @@ class AsyncSmsActivate:
 
     def logRequest(self, query, response: dict):
         if not self.logger is None:
+            def escapeString(s):
+                return s.replace('\\','\\\\').replace('"', '\\"').replace("\r",'\\r').replace("\n","\\n")
             self.logger.debug(
-                'query: {'+reduce(lambda x,y: (x+', ' if len(x) > 0 else '')+y+':"'+('*'*len(query[y]) if y== 'api_key' else query[y].replace('\\','\\\\').replace('"', '\\"'))+'"', query.keys(),'')+'}'+
-                ', response {'+reduce(lambda x,y: (x+', ' if len(x) > 0 else '')+y+':"'+str(response[y]).replace('\\','\\\\').replace('"', '\\"')+'"', response.keys(),'')+'}'
+                'query: {'+reduce(lambda x,y: (x+', ' if len(x) > 0 else '')+y+':"'+('*...*' if y== 'api_key' else escapeString(query[y]))+'"', query.keys(),'')+'}'+
+                ', response {'+reduce(lambda x,y: (x+', ' if len(x) > 0 else '')+y+':"'+escapeString(str(response[y]))+'"', response.keys(),'')+'}'
             )
 
     async def doListRequest(self, query: dict, successCode: str = 'ACCESS_', noSmsCode: str = ''):
