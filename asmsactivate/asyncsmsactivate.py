@@ -18,6 +18,9 @@ class EarlyCancelException(AsyncSmsActivateException):
 class WrongMaxPriceException(AsyncSmsActivateException):
     pass
 
+class BannedException(AsyncSmsActivateException):
+    pass
+
 class AsyncSmsActivate:
     def __init__(self, apiKey: str, apiUrl: str = 'https://api.sms-activate.org/stubs/handler_api.php', logger: logging.Logger = None, http_timeout: int = 15):
         self.logger = logger
@@ -66,6 +69,8 @@ class AsyncSmsActivate:
                             raise EarlyCancelException("Yearly cancel denied")
                         if "WRONG_MAX_PRICE" == code:
                             raise WrongMaxPriceException(f'Wrong max. price {":".join(respList[1:])}')
+                        if "BANNED" == code:
+                            raise BannedException(f'Banned {":".join(respList[1:])}')
                         raise AsyncSmsActivateException(f'Error "{code}": {":".join(respList)}')
                 else:
                     if code != successCode:
@@ -75,6 +80,8 @@ class AsyncSmsActivate:
                             raise EarlyCancelException("Yearly cancel denied")
                         if "WRONG_MAX_PRICE" == code:
                             raise WrongMaxPriceException(f'Wrong max. price {":".join(respList[1:])}')
+                        if "BANNED" == code:
+                            raise BannedException(f'Banned {":".join(respList[1:])}')
                         raise AsyncSmsActivateException(f'Error "{code}": {":".join(respList)}')
             else:
                 raise AsyncSmsActivateException(f"Empty response")
