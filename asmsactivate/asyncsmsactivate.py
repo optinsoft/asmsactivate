@@ -15,6 +15,9 @@ class NoSMSException(AsyncSmsActivateException):
 class EarlyCancelException(AsyncSmsActivateException):
     pass
 
+class NoNumbersException(AsyncSmsActivateException):
+    pass
+
 class WrongMaxPriceException(AsyncSmsActivateException):
     pass
 
@@ -67,6 +70,8 @@ class AsyncSmsActivate:
                             raise NoSMSException("No SMS")
                         if "EARLY_CANCEL_DENIED" == code:
                             raise EarlyCancelException("Yearly cancel denied")
+                        if "NO_NUMBERS" == code:
+                            raise NoNumbersException("No numbers")
                         if "WRONG_MAX_PRICE" == code:
                             raise WrongMaxPriceException(f'Wrong max. price {":".join(respList[1:])}')
                         if "BANNED" == code:
@@ -78,6 +83,8 @@ class AsyncSmsActivate:
                             raise NoSMSException("No SMS")
                         if "EARLY_CANCEL_DENIED" == code:
                             raise EarlyCancelException("Yearly cancel denied")
+                        if "NO_NUMBERS" == code:
+                            raise NoNumbersException("No numbers")
                         if "WRONG_MAX_PRICE" == code:
                             raise WrongMaxPriceException(f'Wrong max. price {":".join(respList[1:])}')
                         if "BANNED" == code:
