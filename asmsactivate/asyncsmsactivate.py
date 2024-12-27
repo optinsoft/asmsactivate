@@ -28,11 +28,13 @@ class ChannelsLimitException(AsyncSmsActivateException):
     pass
 
 class AsyncSmsActivate:
-    def __init__(self, apiKey: str, apiUrl: str = 'https://api.sms-activate.org/stubs/handler_api.php', logger: logging.Logger = None, http_timeout: int = 15):
+    def __init__(self, apiKey: str, apiUrl: str = 'https://api.sms-activate.org/stubs/handler_api.php', logger: logging.Logger = None, http_timeout: int = 15,
+                 http_proxy: aiohttp.typedefs.StrOrURL = None):
         self.logger = logger
         self.apiKey = apiKey
         self.apiUrl = apiUrl
         self.http_timeout = http_timeout
+        self.http_proxy = http_proxy
         self.iso_country_dict = {
             "AE":"95",  "AF":"74",  "AG":"169", "AI":"181", "AL":"155", "AM":"148", "AO":"76",  "AR":"39", 
             "AT":"50",  "AU":"175", "AW":"179", "AZ":"35",  "BA":"108", "BB":"118", "BD":"60",  "BE":"82", 
@@ -115,7 +117,7 @@ class AsyncSmsActivate:
         ssl_context = ssl.create_default_context(cafile=certifi.where())
         conn = aiohttp.TCPConnector(ssl=ssl_context)
         async with aiohttp.ClientSession(connector=conn, raise_for_status=False, timeout=aiohttp.ClientTimeout(total=self.http_timeout)) as session:
-            async with session.get(url, timeout=self.http_timeout) as resp:
+            async with session.get(url, timeout=self.http_timeout, proxy=self.http_proxy) as resp:
                 if resp.status != 200:
                     respText = await resp.text()
                     self.logRequest(query, {'status':resp.status,'text':respText})
@@ -133,7 +135,7 @@ class AsyncSmsActivate:
         ssl_context = ssl.create_default_context(cafile=certifi.where())
         conn = aiohttp.TCPConnector(ssl=ssl_context)
         async with aiohttp.ClientSession(connector=conn, raise_for_status=False, timeout=aiohttp.ClientTimeout(total=self.http_timeout)) as session:
-            async with session.get(url, timeout=self.http_timeout) as resp:
+            async with session.get(url, timeout=self.http_timeout, proxy=self.http_proxy) as resp:
                 if resp.status != 200:
                     respText = await resp.text()
                     self.logRequest(query, {'status':resp.status,'text':respText})

@@ -1,6 +1,7 @@
 from .asyncsmsactivate import AsyncSmsActivate, AsyncSmsActivateException, NoSMSException
 from typing import Coroutine
 import logging
+from aiohttp.typedefs import StrOrURL
 
 async def testApi(apiName: str, apiRoutine: Coroutine):
     print(apiName)
@@ -14,7 +15,7 @@ async def testApi(apiName: str, apiRoutine: Coroutine):
         print("AsyncSmsActivateException:", e)
     return None
 
-async def testAsyncSmsActivate(apiKey: str):
+async def testAsyncSmsActivate(apiKey: str, httpProxy: StrOrURL = None):
     logger = logging.Logger('testsmsactivate')
 
     logger.setLevel(logging.DEBUG)
@@ -27,7 +28,7 @@ async def testAsyncSmsActivate(apiKey: str):
     fileHandler.setFormatter(logFormatter)
     logger.addHandler(fileHandler)
 
-    asmsactivate = AsyncSmsActivate(apiKey, logger=logger)
+    asmsactivate = AsyncSmsActivate(apiKey, logger=logger, http_proxy=httpProxy)
 
     print('--- asmsactivate test ---')
 
