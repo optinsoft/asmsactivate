@@ -148,7 +148,7 @@ class AsyncSmsActivate:
                     raise AsyncSmsActivateException(f"Request failed: {str(e)}")
                 return respJson
 
-    async def getNumber(self, service: str, country_code: str, max_price: int = 0):
+    async def getNumber(self, service: str, country_code: str, max_price: str = ''):
         query = {'action':'getNumber','service':service,'api_key':self.apiKey,'country':country_code}
         if max_price > 0:
             query['maxPrice'] = str(max_price)
