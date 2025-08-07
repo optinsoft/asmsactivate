@@ -150,7 +150,7 @@ class AsyncSmsActivate:
 
     async def getNumber(self, service: str, country_code: str, max_price: str = ''):
         query = {'action':'getNumber','service':service,'api_key':self.apiKey,'country':country_code}
-        if max_price > 0:
+        if max_price:
             query['maxPrice'] = str(max_price)
         respList = await self.doListRequest(query, 'ACCESS_NUMBER')
         return {"response": 1, "id": respList[1], "number": respList[2]}
