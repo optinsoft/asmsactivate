@@ -7,7 +7,7 @@ v = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", s, re.M).group(1)
 setup(name='asmsactivate',
     version=v,
     description='Async API wrapper for sms-activate',
-    install_requires=["aiohttp","certifi"],
+    install_requires=["aiohttp","certifi","aiohttp-socks"],
     author='optinsoft',
     author_email='optinsoft@gmail.com',
     keywords=['sms-activate','sms','async'],

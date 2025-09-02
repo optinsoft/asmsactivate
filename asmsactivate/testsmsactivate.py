@@ -28,14 +28,14 @@ async def testAsyncSmsActivate(apiKey: str, httpProxy: StrOrURL = None):
     fileHandler.setFormatter(logFormatter)
     logger.addHandler(fileHandler)
 
-    asmsactivate = AsyncSmsActivate(apiKey, logger=logger, http_proxy=httpProxy)
+    asmsactivate = AsyncSmsActivate(apiKey, logger=logger, http_or_socks_proxy=httpProxy)
 
     print('--- asmsactivate test ---')
 
     await testApi('getBalance()', asmsactivate.getBalance())
-    await testApi('getPrices("mm","0")', asmsactivate.getPrices('mm','0'))
-    cc = asmsactivate.getCountryCode('RU')
-    number = await testApi(f'getNumber("mm","{cc}")', asmsactivate.getNumber('mm',cc))
+    cc = asmsactivate.getCountryCode('BR')
+    await testApi(f'getPrices("mm","{cc}")', asmsactivate.getPrices('mm',cc))
+    number = await testApi(f'getNumber("mm","{cc}")', asmsactivate.getNumber('mm',cc,0.2))
     if number:
         await testApi(f'getSMS("{number["id"]}")', asmsactivate.getSMS(number['id']))
         await testApi(f'setStatus("8", "{number["id"]}")', asmsactivate.setStatus('8', number['id']))
