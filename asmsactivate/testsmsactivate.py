@@ -15,7 +15,7 @@ async def testApi(apiName: str, apiRoutine: Coroutine):
         print("AsyncSmsActivateException:", e)
     return None
 
-async def testAsyncSmsActivate(apiKey: str, httpProxy: StrOrURL = None):
+async def testAsyncSmsActivate(apiKey: str, httpProxy: StrOrURL = None, connectionErrorRetries: int = 0):
     logger = logging.Logger('testsmsactivate')
 
     logger.setLevel(logging.DEBUG)
@@ -24,18 +24,18 @@ async def testAsyncSmsActivate(apiKey: str, httpProxy: StrOrURL = None):
     log_path = './log/test.log'
 
     logFormatter = logging.Formatter(log_format)
-    fileHandler = logging.FileHandler(log_path)
+    fileHandler = logging.FileHandler(log_path, encoding='utf8')
     fileHandler.setFormatter(logFormatter)
     logger.addHandler(fileHandler)
 
-    asmsactivate = AsyncSmsActivate(apiKey, logger=logger, http_or_socks_proxy=httpProxy)
+    asmsactivate = AsyncSmsActivate(apiKey, logger=logger, http_or_socks_proxy=httpProxy, connection_error_retries=connectionErrorRetries)
 
     print('--- asmsactivate test ---')
 
     await testApi('getBalance()', asmsactivate.getBalance())
     cc = asmsactivate.getCountryCode('BR')
     await testApi(f'getPrices("mm","{cc}")', asmsactivate.getPrices('mm',cc))
-    number = await testApi(f'getNumber("mm","{cc}")', asmsactivate.getNumber('mm',cc,0.2))
+    number = await testApi(f'getNumber("mm","{cc}")', asmsactivate.getNumber('mm',cc,0.08))
     if number:
         await testApi(f'getSMS("{number["id"]}")', asmsactivate.getSMS(number['id']))
         await testApi(f'setStatus("8", "{number["id"]}")', asmsactivate.setStatus('8', number['id']))

@@ -4,7 +4,7 @@ import certifi
 import json
 from urllib.parse import urlencode
 import logging
-from functools import reduce
+from functools import reduce, wraps
 from aiohttp_socks import ProxyConnector
 
 class AsyncSmsActivateException(Exception):
@@ -33,13 +33,14 @@ class CanceledException(AsyncSmsActivateException):
 
 class AsyncSmsActivate:
     def __init__(self, apiKey: str, apiUrl: str = 'https://api.sms-activate.org/stubs/handler_api.php', logger: logging.Logger = None, http_timeout: int = 15,
-                 http_or_socks_proxy: aiohttp.typedefs.StrOrURL = None):
+                 http_or_socks_proxy: aiohttp.typedefs.StrOrURL = None, connection_error_retries: int = 0):
         self.logger = logger
         self.apiKey = apiKey
         self.apiUrl = apiUrl
         self.http_timeout = http_timeout
         self.http_proxy = http_or_socks_proxy if http_or_socks_proxy is not None and http_or_socks_proxy.startswith("http") else  None
         self.socks_proxy = http_or_socks_proxy if http_or_socks_proxy is not None and http_or_socks_proxy.startswith("socks") else None
+        self.connection_error_retries = connection_error_retries
         self.iso_country_dict = {
             "AE":"95",  "AF":"74",  "AG":"169", "AI":"181", "AL":"155", "AM":"148", "AO":"76",  "AR":"39", 
             "AT":"50",  "AU":"175", "AW":"179", "AZ":"35",  "BA":"108", "BB":"118", "BD":"60",  "BE":"82", 
@@ -121,6 +122,28 @@ class AsyncSmsActivate:
                 ', response {'+reduce(lambda x,y: (x+', ' if len(x) > 0 else '')+y+':"'+escapeString(str(response[y]))+'"', response.keys(),'')+'}'
             )
 
+    @staticmethod
+    def async_connection_retry(func):
+        """ Retry async function on ClientConnectionError """
+        @wraps(func)
+        async def wrapper(self, *args, **kwargs):
+            retry_num = 0
+            retry = True
+            while retry:
+                retry = False
+                try:
+                    return await func(self, *args, **kwargs)
+                except aiohttp.ClientConnectionError as e:
+                    retry_num += 1
+                    if retry_num <= self.connection_error_retries:
+                        retry = True
+                        if not self.logger is None:
+                            self.logger.warning(f"[AsyncSmsActivate] {type(e).__name__}: {str(e)}")
+                    else:
+                        raise
+        return wrapper
+
+    @async_connection_retry
     async def doListRequest(self, query: dict, successCode: str = 'ACCESS_', noSmsCode: str = ''):
         url = self.apiUrl + '?' + urlencode(query)
         ssl_context = ssl.create_default_context(cafile=certifi.where())
@@ -139,7 +162,8 @@ class AsyncSmsActivate:
                     raise AsyncSmsActivateException(f"Request failed: {str(e)}")
                 return self.checkResponse(respList, successCode, noSmsCode)
 
-    async def doJsonRequest(self, query):
+    @async_connection_retry
+    async def doJsonRequest(self, query: dict):
         url = self.apiUrl + '?' + urlencode(query)
         ssl_context = ssl.create_default_context(cafile=certifi.where())
         conn = ProxyConnector.from_url(self.socks_proxy, ssl=ssl_context) if self.socks_proxy is not None else aiohttp.TCPConnector(ssl=ssl_context)
