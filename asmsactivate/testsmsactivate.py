@@ -15,7 +15,8 @@ async def testApi(apiName: str, apiRoutine: Coroutine):
         print("AsyncSmsActivateException:", e)
     return None
 
-async def testAsyncSmsActivate(apiKey: str, httpProxy: StrOrURL = None, connectionErrorRetries: int = 0):
+async def testAsyncSmsActivate(apiKey: str, httpProxy: StrOrURL = None, connectionErrorRetries: int = 0,
+                               country: str = 'US', service: str = 'mm', max_price: float = 0.08):
     logger = logging.Logger('testsmsactivate')
 
     logger.setLevel(logging.DEBUG)
@@ -33,9 +34,9 @@ async def testAsyncSmsActivate(apiKey: str, httpProxy: StrOrURL = None, connecti
     print('--- asmsactivate test ---')
 
     await testApi('getBalance()', asmsactivate.getBalance())
-    cc = asmsactivate.getCountryCode('BR')
-    await testApi(f'getPrices("mm","{cc}")', asmsactivate.getPrices('mm',cc))
-    number = await testApi(f'getNumber("mm","{cc}")', asmsactivate.getNumber('mm',cc,0.08))
+    cc = asmsactivate.getCountryCode(country)
+    await testApi(f'getPrices("{service}","{cc}")', asmsactivate.getPrices(service,cc))
+    number = await testApi(f'getNumber("{service}","{cc}","{max_price}")', asmsactivate.getNumber(service,cc,str(max_price)))
     if number:
         await testApi(f'getSMS("{number["id"]}")', asmsactivate.getSMS(number['id']))
         await testApi(f'setStatus("8", "{number["id"]}")', asmsactivate.setStatus('8', number['id']))
