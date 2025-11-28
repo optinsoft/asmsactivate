@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 import logging
 from functools import reduce, wraps
 from aiohttp_socks import ProxyConnector
+import re
 
 class AsyncSmsActivateException(Exception):
     pass
@@ -33,9 +34,10 @@ class CanceledException(AsyncSmsActivateException):
 
 class AsyncSmsActivate:
     def __init__(self, apiKey: str, apiUrl: str = 'https://api.sms-activate.org/stubs/handler_api.php', logger: logging.Logger = None, http_timeout: int = 15,
-                 http_or_socks_proxy: aiohttp.typedefs.StrOrURL = None, connection_error_retries: int = 0):
+                 http_or_socks_proxy: aiohttp.typedefs.StrOrURL = None, connection_error_retries: int = 0, ref: str = ''):
         self.logger = logger
         self.apiKey = apiKey
+        self.ref = ref
         self.apiUrl = apiUrl
         self.http_timeout = http_timeout
         self.http_proxy = http_or_socks_proxy if http_or_socks_proxy is not None and http_or_socks_proxy.startswith("http") else  None
@@ -71,44 +73,36 @@ class AsyncSmsActivate:
         for item in self.iso_country_dict.items(): 
             self.country_iso_dict[item[1]] = item[0]
 
-    def checkResponse(self, respList: list, successCode: str, noSmsCode: str):
+    @staticmethod
+    def raiseSmsActivateException(code: str, respList: list = [], noSmsCode: str = ''):
+        if len(noSmsCode) > 0 and code == noSmsCode:
+            raise NoSMSException("No SMS")
+        if "EARLY_CANCEL_DENIED" == code:
+            raise EarlyCancelException("Yearly cancel denied")
+        if "NO_NUMBERS" == code:
+            raise NoNumbersException("No numbers")
+        if "WRONG_MAX_PRICE" == code:
+            raise WrongMaxPriceException(f'Wrong max. price {":".join(respList[1:])}')
+        if "BANNED" == code:
+            raise BannedException(f'Banned {":".join(respList[1:])}')
+        if "CHANNELS_LIMIT" == code:
+            raise ChannelsLimitException("Channels limit")
+        if "STATUS_CANCEL" == code:
+            raise CanceledException('Canceled')                        
+        raise AsyncSmsActivateException(f'Error "{code}": {":".join(respList)}')
+
+    
+    @staticmethod
+    def checkResponse(respList: list, successCode: str, noSmsCode: str):
         if len(successCode) > 0:
             if len(respList) > 0:            
                 code = respList[0]
                 if successCode.endswith('_'):
                     if not code.startswith(successCode):
-                        if len(noSmsCode) > 0 and code == noSmsCode:
-                            raise NoSMSException("No SMS")
-                        if "EARLY_CANCEL_DENIED" == code:
-                            raise EarlyCancelException("Yearly cancel denied")
-                        if "NO_NUMBERS" == code:
-                            raise NoNumbersException("No numbers")
-                        if "WRONG_MAX_PRICE" == code:
-                            raise WrongMaxPriceException(f'Wrong max. price {":".join(respList[1:])}')
-                        if "BANNED" == code:
-                            raise BannedException(f'Banned {":".join(respList[1:])}')
-                        if "CHANNELS_LIMIT" == code:
-                            raise ChannelsLimitException("Channels limit")
-                        if "STATUS_CANCEL" == code:
-                            raise CanceledException('Canceled')                        
-                        raise AsyncSmsActivateException(f'Error "{code}": {":".join(respList)}')
+                        AsyncSmsActivate.raiseSmsActivateException(code, respList, noSmsCode)
                 else:
                     if code != successCode:
-                        if len(noSmsCode) > 0 and code == noSmsCode:
-                            raise NoSMSException("No SMS")
-                        if "EARLY_CANCEL_DENIED" == code:
-                            raise EarlyCancelException("Yearly cancel denied")
-                        if "NO_NUMBERS" == code:
-                            raise NoNumbersException("No numbers")
-                        if "WRONG_MAX_PRICE" == code:
-                            raise WrongMaxPriceException(f'Wrong max. price {":".join(respList[1:])}')
-                        if "BANNED" == code:
-                            raise BannedException(f'Banned {":".join(respList[1:])}')
-                        if "CHANNELS_LIMIT" == code:
-                            raise ChannelsLimitException("Channels limit")
-                        if "STATUS_CANCEL" == code:
-                            raise CanceledException('Canceled')                        
-                        raise AsyncSmsActivateException(f'Error "{code}": {":".join(respList)}')
+                        AsyncSmsActivate.raiseSmsActivateException(code, respList, noSmsCode)
             else:
                 raise AsyncSmsActivateException(f"Empty response")
         return respList
@@ -160,7 +154,7 @@ class AsyncSmsActivate:
                     respList = respText.split(':')
                 except ValueError as e:
                     raise AsyncSmsActivateException(f"Request failed: {str(e)}")
-                return self.checkResponse(respList, successCode, noSmsCode)
+                return AsyncSmsActivate.checkResponse(respList, successCode, noSmsCode)
 
     @async_connection_retry
     async def doJsonRequest(self, query: dict):
@@ -176,17 +170,41 @@ class AsyncSmsActivate:
                 try:
                     respText = await resp.text()
                     self.logRequest(query, {'status':resp.status,'text':respText})
+                    if re.match(r'^[A-Z_]+(:|$)', respText):
+                        respList = respText.split(':')
+                        AsyncSmsActivate.raiseSmsActivateException(respList[0], respList)
                     respJson = json.loads(respText)
                 except ValueError as e:
                     raise AsyncSmsActivateException(f"Request failed: {str(e)}")
                 return respJson
 
-    async def getNumber(self, service: str, country_code: str, max_price: str = ''):
+    async def getNumber(self, service: str, country_code: str, max_price: str = '',
+                        operator: str = '', phone_exception: str = ''):
         query = {'action':'getNumber','service':service,'api_key':self.apiKey,'country':country_code}
         if max_price:
             query['maxPrice'] = str(max_price)
+        if operator:
+            query['operator'] = operator
+        if phone_exception:
+            query['phoneException'] = phone_exception
+        if self.ref:
+            query['ref'] = self.ref
         respList = await self.doListRequest(query, 'ACCESS_NUMBER')
         return {"response": 1, "id": respList[1], "number": respList[2]}
+    
+    async def getNumberV2(self, service: str, country_code: str, max_price: str = '',
+                        operator: str = '', phone_exception: str = ''):
+        query = {'action':'getNumberV2','service':service,'api_key':self.apiKey,'country':country_code}
+        if max_price:
+            query['maxPrice'] = str(max_price)
+        if operator:
+            query['operator'] = operator
+        if phone_exception:
+            query['phoneException'] = phone_exception
+        if self.ref:
+            query['ref'] = self.ref
+        respLJson = await self.doJsonRequest(query)
+        return {"response": 1, "id": respLJson['activationId'], "number": respLJson['phoneNumber'], **respLJson}
 
     async def setStatus(self, status: str, id: str):
         query = {'action':'setStatus','status':status,'id':id,'api_key':self.apiKey}
@@ -212,6 +230,27 @@ class AsyncSmsActivate:
         query = {'action':'getPrices','service':service,'api_key':self.apiKey,'country':country_code}
         respJson = await self.doJsonRequest(query)
         return {"response": 1, "prices":respJson}
+    
+    async def getOperators(self, service: str, country_code: str):
+        query = {'action':'getOperators','service':service,'api_key':self.apiKey,'country':country_code}
+        respJson = await self.doJsonRequest(query)
+        if respJson.get('status', '') != 'success':
+            return {"response": 0, "error": respJson.get('error')}
+        return {"response": 1, "operators": respJson.get('countryOperators')}
+    
+    async def getNumbersStatus(self, country_code: str, operator: str = ''):
+        query = {'action':'getNumbersStatus','api_key':self.apiKey,'country':country_code}
+        if operator:
+            query['operator'] = operator
+        respJson = await self.doJsonRequest(query)
+        return {"response": 1, "numbers": respJson}
+    
+    async def getTopCountriesByService(self, service: str, freePrice: bool = False):
+        query = {'action':'getTopCountriesByService','service':service,'api_key':self.apiKey}
+        if freePrice:
+            query['freePrice'] = 'true'
+        respJson = await self.doJsonRequest(query)
+        return {"response": 1, "countries": respJson}
 
     def getCountryCode(self, iso_country: str):
         return self.iso_country_dict[iso_country]
