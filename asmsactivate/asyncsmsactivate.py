@@ -91,7 +91,6 @@ class AsyncSmsActivate:
             raise CanceledException('Canceled')                        
         raise AsyncSmsActivateException(f'Error "{code}": {":".join(respList)}')
 
-    
     @staticmethod
     def checkResponse(respList: list, successCode: str, noSmsCode: str):
         if len(successCode) > 0:
@@ -112,7 +111,7 @@ class AsyncSmsActivate:
             def escapeString(s):
                 return s.replace('\\','\\\\').replace('"', '\\"').replace("\r",'\\r').replace("\n","\\n")
             self.logger.debug(
-                'query: {'+reduce(lambda x,y: (x+', ' if len(x) > 0 else '')+y+':"'+('*...*' if y== 'api_key' else escapeString(query[y]))+'"', query.keys(),'')+'}'+
+                'query: {'+reduce(lambda x,y: (x+', ' if len(x) > 0 else '')+y+':"'+('*...*' if y== 'api_key' else escapeString(str(query[y])))+'"', query.keys(),'')+'}'+
                 ', response {'+reduce(lambda x,y: (x+', ' if len(x) > 0 else '')+y+':"'+escapeString(str(response[y]))+'"', response.keys(),'')+'}'
             )
 
