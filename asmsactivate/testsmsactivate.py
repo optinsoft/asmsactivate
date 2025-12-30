@@ -38,7 +38,7 @@ async def testAsyncSmsActivate(apiKey: str, httpProxy: StrOrURL = None, connecti
     cc = asmsactivate.getCountryCode(country)
     await testApi(f'getPrices("{service}","{cc}")', asmsactivate.getPrices(service,cc))
     await testApi(f'getOperators("{service}","{cc}")', asmsactivate.getOperators(service,cc))
-    await testApi(f'getNumbersStatus(""{cc}")', asmsactivate.getNumbersStatus(cc))
+    await testApi(f'getNumbersStatus("{cc}")', asmsactivate.getNumbersStatus(cc))
     await testApi(f'getTopCountriesByService("{service}")', asmsactivate.getTopCountriesByService(service))
     number = await testApi(f'getNumberV2("{service}","{cc}","{max_price}")', asmsactivate.getNumberV2(service,cc,str(max_price),operator,phone_exception))
     if number:
